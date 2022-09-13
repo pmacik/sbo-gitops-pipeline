@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: code-quality
+spec:
+  params:
+    - default: "https://github.com/redhat-developer/service-binding-operator.git"
+      name: git-repo-url
+      type: string
+    - default: master
+      name: git-repo-revision
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: $(params.git-repo-url)
+        - name: revision
+          value: $(params.git-repo-revision)
+        - name: submodules
+          value: "true"
+        - name: depth
+          value: "1"
+        - name: sslVerify
+          value: "false"
+        - name: crtFileName
+          value: ca-bundle.crt
+        - name: deleteExisting
+          value: "true"
+        - name: noProxy
+          value: "true"
+        - name: verbose
+          value: "true"
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:cadf614a6044ee37397de3abe7674827ecab225e7fac9fb123eff5473e2c4003
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: sources
+    - name: lint
+      params:
+        - name: targets
+          value: lint-python-code
+        - name: workdir
+          value: /sources
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: make-task
+      workspaces:
+        - name: sources
+          workspace: sources
+  workspaces:
+    - name: sources

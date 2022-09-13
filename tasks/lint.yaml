@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: make-task
+spec:
+  params:
+    - name: targets
+      type: string
+    - name: workdir
+      type: string
+  steps:
+    - command:
+        - /bin/bash
+        - "-c"
+        - >-
+          cd $(inputs.params.workdir); make $(inputs.params.targets)
+      image: "quay.io/pmacik/sbo-gitops-pipeline:ubi8-base"
+      imagePullPolicy: Always
+      name: "run-make"
+      resources: {}
+  workspaces:
+    - mountPath: /sources
+      name: sources
