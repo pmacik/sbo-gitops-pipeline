@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: run-tests-mock
+spec:
+  params:
+    - name: check
+      type: string
+  steps:
+    - command:
+        - /bin/bash
+        - "-c"
+        - >-
+          if [ "$(inputs.params.check)" != "pass" ]; then echo "Tests FAILED"; exit 1; else echo "Tests PASSED"; exit 0; fi
+      image: "registry.redhat.io/ubi8/ubi-minimal"
+      imagePullPolicy: IfNotPresent
+      name: "run-check"
+      resources: {}
+  workspaces:
+    - mountPath: /sources
+      name: sources

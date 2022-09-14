@@ -16,4 +16,7 @@ deploy-resources:
 deploy-triggers:
 	for i in triggers/*.yaml; do oc apply -f $$i; done
 
-deploy-all: deploy-resources deploy-tasks deploy-pipelines deploy-triggers
+deploy-secrets:
+	for i in secrets/*.yaml; do oc apply -f $$i; done
+
+deploy-all: deploy-resources deploy-secrets deploy-tasks deploy-pipelines deploy-triggers

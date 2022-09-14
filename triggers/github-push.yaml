@@ -1,0 +1,77 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: github-push
+spec:
+  params:
+    - default: main
+      description: The git revision
+      name: git-revision
+    - description: The git repository url
+      name: git-repo-url
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: sbo-gitops-
+      spec:
+        params:
+          - name: git-repo-url
+            value: $(tt.params.git-repo-url)
+          - name: git-repo-revision
+            value: $(tt.params.git-revision)
+        pipelineRef:
+          name: sbo-gitops
+        workspaces:
+          - name: sources
+            persistentVolumeClaim:
+              claimName: sources
+          - name: ssh-directory
+            secret:
+              secretName: github-ssh
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-push
+spec:
+  params:
+    - name: git-repo-url
+      value: $(body.repository.url)
+    - name: git-revision
+      value: main
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: github-push
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: TriggerBinding
+          ref: github-push
+      interceptors:
+        - params:
+            - name: secretRef
+              value:
+                secretKey: secret
+                secretName: ci-webhook
+            - name: eventTypes
+              value:
+                - push
+          ref:
+            kind: ClusterInterceptor
+            name: github
+        - params:
+            - name: filter
+              value: body.ref == 'refs/heads/main'
+          ref:
+            kind: ClusterInterceptor
+            name: cel
+      name: github-push
+      template:
+        ref: github-push
